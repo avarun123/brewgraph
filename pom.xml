@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sbux.loyalty.brewgraph</groupId>
   <artifactId>brewgraph</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+ <!--   <version>1.0</version> -->
   <name>${project.artifactId}</name>
   <description>Builds location specific product graph using similarity measures</description>
   <inceptionYear>2015</inceptionYear>
@@ -73,6 +73,16 @@
     <sourceDirectory>src/main/scala</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
+    <plugin>
+		<groupId>org.apache.tomcat.maven</groupId>
+		<artifactId>tomcat7-maven-plugin</artifactId>
+		<version>2.2</version>
+		<configuration>
+			<url>http://localhost:8080/manager/text</url>
+			<server>TomcatServer</server>
+			<path>brewgraphapi</path>
+		</configuration>
+	</plugin>
       <plugin>
         <!-- see http://davidb.github.com/scala-maven-plugin -->
         <groupId>net.alchim31.maven</groupId>
