@@ -49,7 +49,7 @@ object Main {
   val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
   def main(args: Array[String]) {
     
-    val conf = new SparkConf().setMaster("local").setAppName("BrewGraph");
+    val conf = new SparkConf().setAppName("BrewGraph"); // master should be set from command line with --master
     val sc = new SparkContext(conf);
 
     // updates the class variables (indexOfCountry,indexOfCountry, etc) if a value is specified as command arguments
