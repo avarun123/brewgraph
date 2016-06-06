@@ -33,35 +33,24 @@ import java.util.Date
  * -in hdfs:///user/aveettil/mop-train-pos-basket -out hdfs:///user/aveettil/brewgraph-out-basket -u 0 -c 1 -r 2 -i 4 -t 6 > out.txt &
  */
 object Main {
-  var indexOfCountry = 0
-  var indexOfRegion = 1
-  var indexOfTimeOfDay = 5
-  var indexOfItem = 3
-  var indexOfUser = 2
-  var inputFileName = "/projects/mop/mop-train-pos-basket-short.csv"
-  var outFileName = "/projects/sim/output-" + Calendar.getInstance().getTime() + ".txt"
-  var alpha:Double =0.0
-  var indexOfTxDay = 6
-  var indexOfItemCount = 7
+
   var dateFormat:SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  var delimiter = ","
-  var endDay:Date = null
   val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
   def main(args: Array[String]) {
     
-    val conf = new SparkConf().setAppName("BrewGraph"); // master should be set from command line with --master
+    val conf = new SparkConf().setAppName("BrewGraph").setMaster("local"); // master should be set from command line with --master
     val sc = new SparkContext(conf);
 
     // updates the class variables (indexOfCountry,indexOfCountry, etc) if a value is specified as command arguments
-    getOptions(args)
-    var inputFile = sc.textFile(inputFileName);
+    val inputBean:InputBean = getOptions(args)
+    var inputFile = sc.textFile(inputBean.inputFileName);
 
-    val counts = inputFile.map(line => pairSplit(line, indexOfCountry, indexOfRegion, indexOfTimeOfDay)).groupByKey()
+    val counts = inputFile.map(line => pairSplit(line, inputBean)).groupByKey()
 
    // counts foreach { case (key, value) => computeJaccard(key, value.toArray, indexOfItem, indexOfUser) }
-    counts foreach { case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, indexOfItem, indexOfUser,indexOfTxDay,indexOfItemCount) }
+    counts foreach { case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, inputBean) }
 
-    sc.parallelize(output.toList).map(x => x._1 + "," + x._2 + "," + x._3 + "," + x._4).saveAsTextFile(outFileName)
+    sc.parallelize(output.toList).map(x => x._1 + "," + x._2 + "," + x._3 + "," + x._4).saveAsTextFile(inputBean.outFileName)
 
   }
   def help(options: Options) = {
@@ -73,29 +62,29 @@ object Main {
     System.exit(0);
   }
 
-  def pairSplit(x: String, indexOfCountry: Integer, indexofregion: Integer, indexOfTimeOfDay: Integer): (String, String) = {
-    val splitLine = x.split(delimiter)
-    val country = splitLine(indexOfCountry);
-    val region = splitLine(indexofregion);
-    val timeofday = splitLine(indexOfTimeOfDay);
-    return (country + delimiter + region + delimiter + timeofday, x)
+  def pairSplit(x: String, inputBean:InputBean): (String, String) = {
+    val splitLine = x.split(inputBean.delimiter)
+    val country = splitLine(inputBean.indexOfCountry);
+    val region = splitLine(inputBean.indexOfRegion);
+    val timeofday = splitLine(inputBean.indexOfTimeOfDay);
+    return (country + inputBean.delimiter + region + inputBean.delimiter + timeofday, x)
     //return ("1","2")
   }
   
   /*
    * computes Jaccard coefficient between two vectors and also appends it to a list
    */
-  def computeJaccard(key: String, values: Array[String], indexofItem: Integer, indexOfcolumnvalue: Integer) = {
+  def computeJaccard(key: String, values: Array[String], inputBean:InputBean) = {
     println(key)
 
-    val itemVectors = values.groupBy({ x => x.split(delimiter)(indexofItem) }).mapValues { value => value.map { x => x.split(delimiter)(indexOfcolumnvalue) } }
+    val itemVectors = values.groupBy({ x => x.split(inputBean.delimiter)(inputBean.indexOfItem) }).mapValues { value => value.map { x => x.split(inputBean.delimiter)(inputBean.indexOfUser) } }
 
     val itemVectors_new = itemVectors.foreach {
       case (key1, value1) => {
         itemVectors.map {
           case (key2, value2) => {
             // 
-            val score: (String, Double, Double, Double) = getOutputTuple(key, key1, key2, value1, value2)
+            val score: (String, Double, Double, Double) = getOutputTuple(key, key1, key2, value1, value2,inputBean)
             output += score
           }
         }
@@ -109,17 +98,17 @@ object Main {
   /*
    * computes Jaccard coefficient between two vectors and also appends it to a list
    */
-  def computeJaccardWithTimeDecay(key: String, values: Array[String], indexofItem: Integer, indexOfcolumnvalue: Integer,indexTxDate: Integer,indexCount:Integer) = {
+  def computeJaccardWithTimeDecay(key: String, values: Array[String], inputBean:InputBean) = {
     println(key)
 
-    val itemVectors = values.groupBy({ x => x.split(delimiter)(indexofItem) }).mapValues { value => value.map { x => appendTxDay(x, indexOfcolumnvalue, indexTxDate, indexCount) } }
+    val itemVectors = values.groupBy({ x => x.split(inputBean.delimiter)(inputBean.indexOfItem) }).mapValues { value => value.map { x => appendTxDay(x, inputBean ) } }
 
     val itemVectors_new = itemVectors.foreach {
       case (key1, value1) => {
         itemVectors.map {
           case (key2, value2) => {
             // 
-            val score: (String, Double, Double, Double) = getOutputTupleWithTimeDecay(key, key1, key2, value1, value2)
+            val score: (String, Double, Double, Double) = getOutputTupleWithTimeDecay(key, key1, key2, value1, value2,inputBean)
             output += score
           }
         }
@@ -130,24 +119,25 @@ object Main {
 
   }
   
-  def appendTxDay(x:String,indexOfcolumnvalue: Integer,indexTxDate: Integer,indexCount:Integer):(String,Int) =  {
-        var split = x.split(delimiter)
-        var retValue = (split(indexOfcolumnvalue)+";"+split(indexTxDate),split(indexCount).toInt)
+  def appendTxDay(x:String,inputBean:InputBean):(String,Int) =  {
+        var split = x.split(inputBean.delimiter)
+        var retValue = (split(inputBean.indexOfUser)+";"+split(inputBean.indexOfTxDay),split(inputBean.indexOfItemCount).toInt)
         return retValue;
   }
 
   /**
    * creates pairwise similarity
    */
-  def getOutputTuple(locationkey: String, key1: String, key2: String, value1: Array[String], value2: Array[String]): (String, Double, Double, Double) = {
+  def getOutputTuple(locationkey: String, key1: String, key2: String, value1: Array[String], value2: Array[String],inputBean:InputBean): (String, Double, Double, Double) = {
+     var delimiter = inputBean.delimiter
     if (key1 != key2) {
 
       // you can call other similarity functions instead of jaccard here
       val jaccardSimilarity = getJaccard(value1, value2)
       //return jaccardSimilarity - key item1,item2 value jaccard similarity with counts for union and intersection
-      
+     
       // note - Code can be updated to weed out similarities which does not have minimum threshold for intersection and union
-      return (locationkey.concat(delimiter).concat(key1).concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
+      return (locationkey.concat( delimiter).concat(key1).concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
 
     } else {
           return (locationkey.concat(delimiter).concat(key1).concat(delimiter).concat(key2), 1.0, value1.length, value1.length)
@@ -157,11 +147,12 @@ object Main {
    /**
    * creates pairwise similarity
    */
-  def getOutputTupleWithTimeDecay(locationkey: String, key1: String, key2: String, value1: Array[(String,Int)], value2: Array[(String,Int)]): (String, Double, Double, Double) = {
+  def getOutputTupleWithTimeDecay(locationkey: String, key1: String, key2: String, value1: Array[(String,Int)], value2: Array[(String,Int)],inputBean:InputBean): (String, Double, Double, Double) = {
+     var delimiter = inputBean.delimiter
     if (key1 != key2) {
 
       // you can call other similarity functions instead of jaccard here
-      val jaccardSimilarity = getJaccardWithTimeDecay(value1, value2,alpha)
+      val jaccardSimilarity = getJaccardWithTimeDecay(value1, value2,inputBean.alpha,inputBean.endDay)
       //return jaccardSimilarity - key item1,item2 value jaccard similarity with counts for union and intersection
       
       // note - Code can be updated to weed out similarities which does not have minimum threshold for intersection and union
@@ -193,20 +184,20 @@ object Main {
      a = number of 1s in row1, b=number of 1s in 
      to add time decay, instead of adding up 1s, add time decay value for computing a,b,c
    */
-  def getJaccardWithTimeDecay(row1: Array[(String,Int)], row2: Array[(String,Int)],alpha:Double): (Double, Double, Double) = {
+  def getJaccardWithTimeDecay(row1: Array[(String,Int)], row2: Array[(String,Int)],alpha:Double,endDay:Date): (Double, Double, Double) = {
     
     var set = collection.mutable.Set[String]()
     
     var union = 0.0
     row1.foreach( { case(key,value) => {
       set+=key
-      var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1)) * alpha) // multiply with time alpha
+      var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1),endDay) * alpha) // multiply with time alpha
       union+= decay
     }
     })
     var intersection = 0.0
      row2.foreach( { case(key,value) => {
-       var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1)) * alpha) // multiply with time alpha
+       var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1),endDay) * alpha) // multiply with time alpha
         union+= decay
         if (set.contains(key)){
          
@@ -220,10 +211,10 @@ object Main {
     return (intersection, union, intersection / union)
   }
     
-    def getTimeDeltaDays(date:String):Long = {
+    def getTimeDeltaDays(date:String,endDay:Date):Long = {
      
       var date1 = dateFormat.parse(date).getTime()
-       
+       println(endDay)
       var diffInMillis:Long = endDay.getTime()-date1
       var tu:TimeUnit =TimeUnit.DAYS
       var retValue =  tu.convert(diffInMillis,TimeUnit.MILLISECONDS)
@@ -233,7 +224,7 @@ object Main {
   
 
 
-  def getOptions(args: Array[String]) = {
+  def getOptions(args: Array[String]):InputBean = {
 
     val options = new Options();
 
@@ -265,57 +256,61 @@ object Main {
 
     val cmd = parser.parse(options, args);
 
+    var inputBean = new InputBean()
     if (cmd.hasOption("h")) {
       help(options)
     }
 
     if (cmd.hasOption("in")) {
-      inputFileName = cmd.getOptionValue("in")
+      inputBean.inputFileName = cmd.getOptionValue("in")
     }
 
     val allOptions = cmd.getOptions()
 
     if (cmd.hasOption("out")) {
 
-      outFileName = cmd.getOptionValue("out")
+      inputBean.outFileName = cmd.getOptionValue("out")
     }
 
     if (cmd.hasOption("c")) {
 
-      indexOfCountry = cmd.getOptionValue("c").toInt
+      inputBean.indexOfCountry = cmd.getOptionValue("c").toInt
     }
     if (cmd.hasOption("r")) {
-      indexOfRegion = cmd.getOptionValue("r").toInt
+      inputBean.indexOfRegion = cmd.getOptionValue("r").toInt
     }
     if (cmd.hasOption("t")) {
-      indexOfTimeOfDay = cmd.getOptionValue("t").toInt
+      inputBean.indexOfTimeOfDay = cmd.getOptionValue("t").toInt
     }
     if (cmd.hasOption("i")) {
-      indexOfItem = cmd.getOptionValue("i").toInt
+      inputBean.indexOfItem = cmd.getOptionValue("i").toInt
     }
     if (cmd.hasOption("u")) {
-      indexOfUser = cmd.getOptionValue("u").toInt
+      inputBean.indexOfUser = cmd.getOptionValue("u").toInt
     }
     
     if (cmd.hasOption("alpha")) {
-      alpha = cmd.getOptionValue("alpha").toDouble
+      inputBean.alpha = cmd.getOptionValue("alpha").toDouble
     }
     
     if (cmd.hasOption("dt")) {
-      indexOfTxDay = cmd.getOptionValue("dt").toInt
+      inputBean.indexOfTxDay = cmd.getOptionValue("dt").toInt
     }
      if (cmd.hasOption("n")) {
-      indexOfItemCount = cmd.getOptionValue("n").toInt
+      inputBean.indexOfItemCount = cmd.getOptionValue("n").toInt
     }
     if (cmd.hasOption("del")) {
-      delimiter = cmd.getOptionValue("del")
+      inputBean.delimiter = cmd.getOptionValue("del")
     }
     if (cmd.hasOption("end")) {
       var sEndDay = cmd.getOptionValue("end")
-      endDay = dateFormat.parse(sEndDay)
+      // println(sEndDay);
+      inputBean.endDay = dateFormat.parse(sEndDay)
+     // println(inputBean.endDay.toGMTString());
     } else {
-      endDay = new Date();
+      inputBean.endDay = new Date();
     }
+    return inputBean
   }
 
 }
