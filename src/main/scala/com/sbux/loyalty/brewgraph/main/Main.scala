@@ -215,12 +215,19 @@ println(inputBean.toTextString());
     def getTimeDeltaDays(date:String,endDay:Date):Long = {
      if(date.equals(""))
        return 0; // edge case when no date is present in the input data
-      var date1 = dateFormat.parse(date).getTime()
+     var date1 = System.currentTimeMillis()
+     try {
+       date1 = dateFormat.parse(date).getTime()
+     } catch{
+       case e:Exception => {e.printStackTrace()}
+       return 0
+     }
       // println(endDay)
       var diffInMillis:Long = endDay.getTime()-date1
       var tu:TimeUnit =TimeUnit.DAYS
       var retValue =  tu.convert(diffInMillis,TimeUnit.MILLISECONDS)
       return retValue
+      
       
     }
   
