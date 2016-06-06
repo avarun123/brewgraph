@@ -38,13 +38,14 @@ object Main {
   val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
   def main(args: Array[String]) {
     
-    val conf = new SparkConf().setAppName("BrewGraph").setMaster("local"); // master should be set from command line with --master
+    val conf = new SparkConf().setAppName("BrewGraph"); //.setMaster("local"); // master should be set from command line with --master
+   
     val sc = new SparkContext(conf);
 
     // updates the class variables (indexOfCountry,indexOfCountry, etc) if a value is specified as command arguments
     val inputBean:InputBean = getOptions(args)
     var inputFile = sc.textFile(inputBean.inputFileName);
-
+println(inputBean.toTextString());
     val counts = inputFile.map(line => pairSplit(line, inputBean)).groupByKey()
 
    // counts foreach { case (key, value) => computeJaccard(key, value.toArray, indexOfItem, indexOfUser) }
@@ -100,7 +101,7 @@ object Main {
    */
   def computeJaccardWithTimeDecay(key: String, values: Array[String], inputBean:InputBean) = {
     println(key)
-
+    println(inputBean.toTextString());
     val itemVectors = values.groupBy({ x => x.split(inputBean.delimiter)(inputBean.indexOfItem) }).mapValues { value => value.map { x => appendTxDay(x, inputBean ) } }
 
     val itemVectors_new = itemVectors.foreach {

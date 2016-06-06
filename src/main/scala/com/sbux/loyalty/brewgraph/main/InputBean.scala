@@ -18,4 +18,9 @@ class InputBean extends java.io.Serializable  {
   var delimiter = ","
   var endDay:Date = null
   
+     def toTextString():String= {
+				return "InputBean [indexOfCountry=" + indexOfCountry + ", indexOfRegion=" + indexOfRegion+ ", indexOfTimeOfDay=" + indexOfTimeOfDay + ", indexOfItem=" + indexOfItem + ", indexOfUser="
+						+ indexOfUser + ", inputFileName=" + inputFileName + ", outFileName=" + outFileName + ", alpha="
+						+ alpha + ", indexOfTxDay=" + indexOfTxDay + ", indexOfItemCount=" + indexOfItemCount+ ", delimiter=" + delimiter + ", endDay=" + endDay + "]";
+			}
 }
