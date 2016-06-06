@@ -38,7 +38,7 @@ object Main {
   val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
   def main(args: Array[String]) {
     
-    val conf = new SparkConf().setAppName("BrewGraph"); //.setMaster("local"); // master should be set from command line with --master
+    val conf = new SparkConf().setAppName("BrewGraph")//.setMaster("local"); // master should be set from command line with --master
    
     val sc = new SparkContext(conf);
 
@@ -213,9 +213,10 @@ println(inputBean.toTextString());
   }
     
     def getTimeDeltaDays(date:String,endDay:Date):Long = {
-     
+     if(date.equals(""))
+       return 0; // edge case when no date is present in the input data
       var date1 = dateFormat.parse(date).getTime()
-       println(endDay)
+      // println(endDay)
       var diffInMillis:Long = endDay.getTime()-date1
       var tu:TimeUnit =TimeUnit.DAYS
       var retValue =  tu.convert(diffInMillis,TimeUnit.MILLISECONDS)
