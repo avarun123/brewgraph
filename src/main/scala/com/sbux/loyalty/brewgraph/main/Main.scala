@@ -68,7 +68,7 @@ println(inputBean.toTextString());
     val country = splitLine(inputBean.indexOfCountry);
     val region = splitLine(inputBean.indexOfRegion);
     val timeofday = splitLine(inputBean.indexOfTimeOfDay);
-    println(x)
+    //println(x)
     return (country + inputBean.delimiter + region + inputBean.delimiter + timeofday, x)
     //return ("1","2")
   }
@@ -192,7 +192,7 @@ println(inputBean.toTextString());
     
     var union = 0.0
     row1.foreach( { case(key,value) => {
-      println("key is"+key)
+     // println("key is"+key)
       set+=key
       var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1),endDay) * alpha) // multiply with time alpha
       union+= decay
@@ -200,7 +200,7 @@ println(inputBean.toTextString());
     })
     var intersection = 0.0
      row2.foreach( { case(key,value) => {
-       println("key is"+key)
+       //println("key is"+key)
        var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1),endDay) * alpha) // multiply with time alpha
         union+= decay
         if (set.contains(key)){
