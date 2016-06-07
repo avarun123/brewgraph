@@ -48,8 +48,10 @@ object Main {
 println(inputBean.toTextString());
     val counts = inputFile.map(line => pairSplit(line, inputBean)).groupByKey()
      println("Computing similarities");
-   // counts foreach { case (key, value) => computeJaccard(key, value.toArray, indexOfItem, indexOfUser) }
-    counts foreach { case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, inputBean) }
+    if(!inputBean.timeDecay)
+         counts foreach { case (key, value) => computeJaccard(key, value.toArray, inputBean) }
+    else
+        counts foreach { case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, inputBean) }
 
     sc.parallelize(output.toList).map(x => x._1 + "," + x._2 + "," + x._3 + "," + x._4).saveAsTextFile(inputBean.outFileName)
 
@@ -101,7 +103,7 @@ println(inputBean.toTextString());
    * computes Jaccard coefficient between two vectors and also appends it to a list
    */
   def computeJaccardWithTimeDecay(key: String, values: Array[String], inputBean:InputBean) = {
-    println(key)
+    println("starting "+key)
     println(inputBean.toTextString());
     val itemVectors = values.groupBy({ x => x.split(inputBean.delimiter)(inputBean.indexOfItem) }).mapValues { value => value.map { x => appendTxDay(x, inputBean ) } }
 
@@ -118,7 +120,7 @@ println(inputBean.toTextString());
       }
     }
     var limit = itemVectors.size
-
+   println("done "+key);
   }
   
   def appendTxDay(x:String,inputBean:InputBean):(String,Int) =  {
@@ -262,7 +264,9 @@ println(inputBean.toTextString());
     options.addOption("n", true, "index of item count");
     
     options.addOption("del", true, "delimiter");
-    options.addOption("end", true, "delimiter");
+    options.addOption("end", true, "last day in the pos data");
+    
+    options.addOption("decay", true, "time decay (true/false)");
 
     val parser = new BasicParser();
 
@@ -321,6 +325,9 @@ println(inputBean.toTextString());
      // println(inputBean.endDay.toGMTString());
     } else {
       inputBean.endDay = new Date();
+    }
+    if (cmd.hasOption("decay")) {
+      inputBean.timeDecay = cmd.getOptionValue("decay").toBoolean
     }
     return inputBean
   }

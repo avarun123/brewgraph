@@ -17,11 +17,12 @@ class InputBean extends java.io.Serializable  {
   
   var delimiter = ","
   var endDay:Date = null
-  
+  var timeDecay:Boolean = false
      def toTextString():String= {
 				var retValue= "InputBean [indexOfCountry=" + indexOfCountry + ", indexOfRegion=" + indexOfRegion+ ", indexOfTimeOfDay=" + indexOfTimeOfDay + ", indexOfItem=" + indexOfItem + ", indexOfUser="
 						retValue+= indexOfUser + ", inputFileName=" + inputFileName + ", outFileName=" + outFileName + ", alpha="
-						retValue+= alpha + ", indexOfTxDay=" + indexOfTxDay + ", indexOfItemCount=" + indexOfItemCount+ ", delimiter=" + delimiter + ", endDay=" + endDay + "]"
+						retValue+= alpha + ", indexOfTxDay=" + indexOfTxDay + ", indexOfItemCount=" + indexOfItemCount+ ", delimiter=" + delimiter + ", endDay=" + endDay 
+						retValue+="timeDecay="+timeDecay+ "]"
 						return retValue
 			}
 }
