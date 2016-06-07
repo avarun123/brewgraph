@@ -1,6 +1,6 @@
 [
   {
-    "Classification": "spark",
+    "Classification": "BrewGraph",
     "Properties": {
       "maximizeResourceAllocation": "true"
     }
