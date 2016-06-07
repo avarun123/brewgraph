@@ -68,6 +68,7 @@ println(inputBean.toTextString());
     val country = splitLine(inputBean.indexOfCountry);
     val region = splitLine(inputBean.indexOfRegion);
     val timeofday = splitLine(inputBean.indexOfTimeOfDay);
+    println(x)
     return (country + inputBean.delimiter + region + inputBean.delimiter + timeofday, x)
     //return ("1","2")
   }
@@ -191,6 +192,7 @@ println(inputBean.toTextString());
     
     var union = 0.0
     row1.foreach( { case(key,value) => {
+      println("key is"+key)
       set+=key
       var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1),endDay) * alpha) // multiply with time alpha
       union+= decay
@@ -198,6 +200,7 @@ println(inputBean.toTextString());
     })
     var intersection = 0.0
      row2.foreach( { case(key,value) => {
+       println("key is"+key)
        var decay = pow(Math.E,-1 * getTimeDeltaDays(key.split(";")(1),endDay) * alpha) // multiply with time alpha
         union+= decay
         if (set.contains(key)){
@@ -219,10 +222,10 @@ println(inputBean.toTextString());
      try {
        date1 = dateFormat.parse(date).getTime()
      } catch{
-       case e:Exception => {e.printStackTrace()}
+       case e:Exception => {}//e.printStackTrace()}
        return 0
      }
-      // println(endDay)
+     // println(date1+"     "+endDay)
       var diffInMillis:Long = endDay.getTime()-date1
       var tu:TimeUnit =TimeUnit.DAYS
       var retValue =  tu.convert(diffInMillis,TimeUnit.MILLISECONDS)
