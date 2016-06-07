@@ -217,7 +217,7 @@ println(inputBean.toTextString());
     
     def getTimeDeltaDays(date:String,endDay:Date):Long = {
      if(date.equals(""))
-       return 0; // edge case when no date is present in the input data
+       return 0L; // edge case when no date is present in the input data
      var date1 = System.currentTimeMillis()
      try {
        date1 = dateFormat.parse(date).getTime()
