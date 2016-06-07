@@ -47,7 +47,7 @@ object Main {
     var inputFile = sc.textFile(inputBean.inputFileName);
 println(inputBean.toTextString());
     val counts = inputFile.map(line => pairSplit(line, inputBean)).groupByKey()
-
+     println("Computing similarities");
    // counts foreach { case (key, value) => computeJaccard(key, value.toArray, indexOfItem, indexOfUser) }
     counts foreach { case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, inputBean) }
 
