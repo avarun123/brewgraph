@@ -13,6 +13,8 @@ import java.util.concurrent.TimeUnit
 import java.time.LocalDate
 import scala.math.pow
 import java.util.Date
+import org.apache.spark.rdd.RDD
+ 
 
 /*
  * computes product to product associations.
@@ -35,7 +37,7 @@ import java.util.Date
 object Main {
 
   var dateFormat:SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
+ 
   def main(args: Array[String]) {
     
     val conf = new SparkConf().setAppName("BrewGraph")//.setMaster("local"); // master should be set from command line with --master
@@ -45,16 +47,22 @@ object Main {
     // updates the class variables (indexOfCountry,indexOfCountry, etc) if a value is specified as command arguments
     val inputBean:InputBean = getOptions(args)
     var inputFile = sc.textFile(inputBean.inputFileName);
-println(inputBean.toTextString());
-    val counts = inputFile.map(line => pairSplit(line, inputBean)).groupByKey()
+    println(inputBean.toTextString());
+ 
+    //var inputFileArray = inputFile.collect()
+ 
+    var counts = inputFile.map(line => pairSplit(line, inputBean)).groupByKey()
+   
      println("Computing similarities");
+    var counts_new:RDD[String] = null;
     if(!inputBean.timeDecay)
-         counts foreach { case (key, value) => computeJaccard(key, value.toArray, inputBean) }
+        counts_new= counts.map({ case (key, value) => computeJaccard(key, value.toArray, inputBean) }).values
     else
-        counts foreach { case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, inputBean) }
+        counts_new = counts.map({ case (key, value) => computeJaccardWithTimeDecay (key, value.toArray, inputBean) }).values
 
-    sc.parallelize(output.toList).map(x => x._1 + "," + x._2 + "," + x._3 + "," + x._4).saveAsTextFile(inputBean.outFileName)
-
+   // sc.parallelize(output.toList).map(x => x._1 + "," + x._2 + "," + x._3 + "," + x._4).saveAsTextFile(inputBean.outFileName)
+    counts_new.saveAsTextFile(inputBean.outFileName)
+    sc.stop()
   }
   def help(options: Options) = {
 
@@ -78,31 +86,38 @@ println(inputBean.toTextString());
   /*
    * computes Jaccard coefficient between two vectors and also appends it to a list
    */
-  def computeJaccard(key: String, values: Array[String], inputBean:InputBean) = {
+  def computeJaccard(key: String, values: Array[String], inputBean:InputBean) : (String,String)= {
+    // val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
+    val output:StringBuilder= new StringBuilder
     println(key)
 
     val itemVectors = values.groupBy({ x => x.split(inputBean.delimiter)(inputBean.indexOfItem) }).mapValues { value => value.map { x => x.split(inputBean.delimiter)(inputBean.indexOfUser) } }
-
+   
     val itemVectors_new = itemVectors.foreach {
       case (key1, value1) => {
         itemVectors.map {
           case (key2, value2) => {
             // 
             val score: (String, Double, Double, Double) = getOutputTuple(key, key1, key2, value1, value2,inputBean)
-            output += score
+            if(output.length == 0)
+                output ++= score._1+","+score._2+","+score._3+","+score._4
+            else
+              output ++= "\n"+score._1+","+score._2+","+score._3+","+score._4
           }
         }
 
       }
     }
-    var limit = itemVectors.size
-
+    //var limit = itemVectors.size
+    return (key,output.toString())
   }
   
   /*
    * computes Jaccard coefficient between two vectors and also appends it to a list
    */
-  def computeJaccardWithTimeDecay(key: String, values: Array[String], inputBean:InputBean) = {
+  def computeJaccardWithTimeDecay(key: String, values: Array[String], inputBean:InputBean): (String,String) = {
+   // val output: ListBuffer[(String, Double, Double, Double)] = ListBuffer()
+    val output:StringBuilder= new StringBuilder
     println("starting "+key)
     println(inputBean.toTextString());
     val itemVectors = values.groupBy({ x => x.split(inputBean.delimiter)(inputBean.indexOfItem) }).mapValues { value => value.map { x => appendTxDay(x, inputBean ) } }
@@ -113,14 +128,18 @@ println(inputBean.toTextString());
           case (key2, value2) => {
             // 
             val score: (String, Double, Double, Double) = getOutputTupleWithTimeDecay(key, key1, key2, value1, value2,inputBean)
-            output += score
+            //output += score
+             if(output.length == 0)
+                output ++= score._1+","+score._2+","+score._3+","+score._4
+            else
+              output ++= "\n"+score._1+","+score._2+","+score._3+","+score._4
           }
         }
 
       }
     }
-    var limit = itemVectors.size
-   println("done "+key);
+    //var limit = itemVectors.size
+    return (key,output.toString())
   }
   
   def appendTxDay(x:String,inputBean:InputBean):(String,Int) =  {
@@ -142,9 +161,11 @@ println(inputBean.toTextString());
      
       // note - Code can be updated to weed out similarities which does not have minimum threshold for intersection and union
       return (locationkey.concat( delimiter).concat(key1).concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
+      // return ( key1.concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
 
     } else {
           return (locationkey.concat(delimiter).concat(key1).concat(delimiter).concat(key2), 1.0, value1.length, value1.length)
+      // return (key1.concat(delimiter).concat(key2), 1.0, value1.length, value1.length)
     }
   }
   
@@ -160,10 +181,12 @@ println(inputBean.toTextString());
       //return jaccardSimilarity - key item1,item2 value jaccard similarity with counts for union and intersection
       
       // note - Code can be updated to weed out similarities which does not have minimum threshold for intersection and union
-      return (locationkey.concat(delimiter).concat(key1).concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
+     return (locationkey.concat(delimiter).concat(key1).concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
+       //return ( key1.concat(delimiter).concat(key2), jaccardSimilarity._3, jaccardSimilarity._1, jaccardSimilarity._2)
 
     } else {
           return (locationkey.concat(delimiter).concat(key1).concat(delimiter).concat(key2), 1.0, value1.length, value1.length)
+          // return (key1.concat(delimiter).concat(key2), 1.0, value1.length, value1.length)
     }
   }
 
