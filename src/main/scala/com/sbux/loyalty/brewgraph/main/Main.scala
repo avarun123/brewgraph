@@ -99,10 +99,12 @@ object Main {
           case (key2, value2) => {
             // 
             val score: (String, Double, Double, Double) = getOutputTuple(key, key1, key2, value1, value2,inputBean)
-            if(output.length == 0)
-                output ++= score._1+","+score._2+","+score._3+","+score._4
-            else
-              output ++= "\n"+score._1+","+score._2+","+score._3+","+score._4
+            if(score._2 > 0.0 & score._3>inputBean.min_intersection) {
+              if(output.length == 0)
+                  output ++= score._1+","+score._2+","+score._3+","+score._4
+              else
+                output ++= "\n"+score._1+","+score._2+","+score._3+","+score._4
+            }
           }
         }
 
@@ -129,10 +131,12 @@ object Main {
             // 
             val score: (String, Double, Double, Double) = getOutputTupleWithTimeDecay(key, key1, key2, value1, value2,inputBean)
             //output += score
-             if(output.length == 0)
-                output ++= score._1+","+score._2+","+score._3+","+score._4
-            else
-              output ++= "\n"+score._1+","+score._2+","+score._3+","+score._4
+            if(score._2 > 0.0 & score._3>inputBean.min_intersection) {
+               if(output.length == 0)
+                  output ++= score._1+","+score._2+","+score._3+","+score._4
+              else
+                output ++= "\n"+score._1+","+score._2+","+score._3+","+score._4
+            }
           }
         }
 
@@ -290,6 +294,8 @@ object Main {
     options.addOption("end", true, "last day in the pos data");
     
     options.addOption("decay", true, "time decay (true/false)");
+    
+     options.addOption("minIntersection", true, "threshold minimum intersection of two  vectors");
 
     val parser = new BasicParser();
 
@@ -351,6 +357,9 @@ object Main {
     }
     if (cmd.hasOption("decay")) {
       inputBean.timeDecay = cmd.getOptionValue("decay").toBoolean
+    }
+    if(cmd.hasOption("minIntersection")) {
+      inputBean.min_intersection = cmd.getOptionValue("minIntersection").toInt
     }
     return inputBean
   }
