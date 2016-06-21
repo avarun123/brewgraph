@@ -40,12 +40,18 @@ object Main {
  
   def main(args: Array[String]) {
     
-    val conf = new SparkConf().setAppName("BrewGraph")//.setMaster("local"); // master should be set from command line with --master
-   
+     
+    val inputBean:InputBean = getOptions(args)
+    var conf:SparkConf = null
+      if(inputBean.local) // running locally in eclipse
+       conf = new SparkConf().setAppName("BrewGraph").setMaster("local");
+      else
+        conf = new SparkConf().setAppName("BrewGraph") // set master from command line
     val sc = new SparkContext(conf);
+    
 
     // updates the class variables (indexOfCountry,indexOfCountry, etc) if a value is specified as command arguments
-    val inputBean:InputBean = getOptions(args)
+    
     var inputFile = sc.textFile(inputBean.inputFileName);
     println(inputBean.toTextString());
  
@@ -293,6 +299,8 @@ object Main {
     options.addOption("del", true, "delimiter");
     options.addOption("end", true, "last day in the pos data");
     
+    options.addOption("local", true, "is runing local(true/false)");
+    
     options.addOption("decay", true, "time decay (true/false)");
     
      options.addOption("minIntersection", true, "threshold minimum intersection of two  vectors");
@@ -360,6 +368,9 @@ object Main {
     }
     if(cmd.hasOption("minIntersection")) {
       inputBean.min_intersection = cmd.getOptionValue("minIntersection").toInt
+    }
+    if(cmd.hasOption("local")) {
+      inputBean.local = cmd.getOptionValue("local").toBoolean
     }
     return inputBean
   }

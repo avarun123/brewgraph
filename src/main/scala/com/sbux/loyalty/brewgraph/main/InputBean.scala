@@ -18,6 +18,7 @@ class InputBean extends java.io.Serializable  {
   var delimiter = ","
   var endDay:Date = null
   var timeDecay:Boolean = false
+  var local=false
   var min_intersection:Integer=100;
      def toTextString():String= {
 				var retValue= "InputBean [indexOfCountry=" + indexOfCountry + ", indexOfRegion=" + indexOfRegion+ ", indexOfTimeOfDay=" + indexOfTimeOfDay + ", indexOfItem=" + indexOfItem + ", indexOfUser="
