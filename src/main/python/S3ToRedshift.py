@@ -9,9 +9,12 @@ import sys, getopt
 from boto.beanstalk.response import S3Location
 from subprocess import call
 import psycopg2;
+from RedshiftConnect import RedshiftConnect
+
 def main(argv):
-    s3Location = ""
-    redshiftTable=""
+    source = ""
+    dest=""
+    query=""
     accessKeyId=""
     accesskey=""
     delimiter='\t'
@@ -19,7 +22,7 @@ def main(argv):
     pwd=""
     #dbName=
     try:
-      opts, args = getopt.getopt(argv,"hs:t:i:k:d:u:p:",["src=","table=","id=","key=","del=","user=","pwd="])
+      opts, args = getopt.getopt(argv,"hs:t:i:k:d:u:p:q:",["src=","dest=","id=","key=","del=","user=","pwd=","query="])
     except getopt.GetoptError:
       print ('S3ToRedshift.py -t <redshift table name> -s <s3 location> -i <aws access key id> -k <aws access key>' )
       sys.exit(2)
@@ -28,9 +31,9 @@ def main(argv):
          print ('S3ToRedshift.py -t <redshift table name> -s <s3 location> -i <aws access key id> -k <aws access key>' )
          sys.exit()
       elif opt in ("-s", "--src"):
-         s3Location = arg
-      elif opt in ("-t", "--table"):
-         redshiftTable = arg
+         source = arg
+      elif opt in ("-t", "--dest"):
+         dest = arg
       elif opt in ("-i", "--id"):
          accessKeyId = arg
       elif opt in ("-k", "--key"):
@@ -41,23 +44,20 @@ def main(argv):
         user = arg
       elif opt in ("-p", "--pwd"):
         pwd = arg
-           
-    command = "copy "+str(redshiftTable)+" from "+"\'"+s3Location+"\' credentials "
-    command+= "\'aws_access_key_id="+accessKeyId+";aws_secret_access_key="+accesskey+"\' delimiter \'"+delimiter+"\' IGNOREHEADER 1 ENCODING UTF8 NULL AS 'NULL'"
-    print ("executing "+command)
+      elif opt in ("-q", "--query"):
+        query = arg
+     
+     
     
-    connenction_string = "dbname='dev' port='5439' user='"+user+"' password='"+pwd+"' host='http://sbux-redshift.cho75avhmqi9.us-west-2.redshift.amazonaws.com'";
-    print ("Connecting to \n   " +connenction_string)
-    conn = psycopg2.connect(connenction_string);
-    cur = conn.cursor()
-    cur.execute(command)
-   # cur.execute("select * from ")
-# DO THE DEW :)
-
-    conn.commit();
-    conn.close();
+    redshift =   RedshiftConnect(user,pwd,'dev') 
+    if "s3:" in source :
+        redshift.copyFromS3toRs(dest, source, accessKeyId, accesskey, delimiter)
+    elif "s3:" in dest:
+        redshift.copyFromRstoS3(query, dest, accessKeyId, accesskey, delimiter)   
+    redshift.close()
 
     #call([command, "-l"])
 if __name__ == "__main__":
    main(sys.argv[1:])
+    
     
