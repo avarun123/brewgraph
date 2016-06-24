@@ -1,0 +1,1 @@
+select max(ci2_trans_dt) from source.apollo_cos_transactions;
